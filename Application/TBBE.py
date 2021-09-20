@@ -28,7 +28,7 @@ class Session:
         self.bettingAgentQs = {}
         self.bettingAgentThreads = []
 
-        self.Conversations = None
+        self.OpinionDynamicsPlatform = None
 
         # Needed attributes
         self.startTime = None
@@ -73,8 +73,14 @@ class Session:
             for i in range(NUM_OF_EXCHANGES):
                 marketUpdates[i] = self.exchanges[i].publishMarketState(timeInEvent)
 
-            self.Conversations.initiate_conversations(timeInEvent)
-            self.Conversations.update_conversations(timeInEvent, marketUpdates)
+            if timeInEvent < self.endOfInPlayBettingPeriod:
+                self.OpinionDynamicsPlatform.initiate_conversations(timeInEvent)
+                self.OpinionDynamicsPlatform.update_opinions(timeInEvent, marketUpdates)
+
+            else:
+                self.OpinionDynamicsPlatform.settle_opinions(self.winningCompetitor)
+
+
 
             (transactions, markets) = exchange.processOrder(timeInEvent, order)
 
@@ -82,12 +88,6 @@ class Session:
                 for id, q in self.bettingAgentQs.items():
                     update = exchangeUpdate(transactions, order, markets)
                     q.put(update)
-
-
-
-
-
-
 
 
     def agentLogic(self, agent, agentQ):
@@ -123,7 +123,11 @@ class Session:
             for i in range(NUM_OF_EXCHANGES):
                 marketUpdates[i] = self.exchanges[i].publishMarketState(timeInEvent)
 
-            if agent.id == 1:
+            agent.respond(timeInEvent, marketUpdates, trade)
+            order = agent.getorder(timeInEvent, marketUpdates)
+
+
+            if agent.id == 0:
                 for i in range(NUM_OF_COMPETITORS):
                     self.competitor_odds['time'].append(timeInEvent)
                     self.competitor_odds['competitor'].append(i)
@@ -132,8 +136,12 @@ class Session:
                     else:
                         self.competitor_odds['odds'].append(marketUpdates[0][i]['backs']['worst'])
 
-            agent.respond(timeInEvent, marketUpdates, trade)
-            order = agent.getorder(timeInEvent, marketUpdates)
+                    self.competitor_distances['competitor'].append(i)
+                    self.competitor_distances['time'].append(timeInEvent)
+                    if len(agent.currentRaceState) == 0:
+                        self.competitor_distances['distance'].append(0)
+                    else:
+                        self.competitor_distances['distance'].append(agent.currentRaceState[i])
 
 
             self.opinion_hist['id'].append(agent.id)
@@ -179,28 +187,27 @@ class Session:
         def initAgent(name, quantity, id):
 
             uncertainty = 1.0
-            start_opinion = "moderate"
 
             local_opinion = 1/ NUM_OF_COMPETITORS
 
+            #
+            # if name == 'Test': return Agent_Test(id, name, self.lengthOfRace, self.endOfInPlayBettingPeriod)
+            # if name == 'Random': return Agent_Random(id, name, self.lengthOfRace, self.endOfInPlayBettingPeriod)
+            # if name == 'Leader_Wins': return Agent_Leader_Wins(id, name, self.lengthOfRace, self.endOfInPlayBettingPeriod)
+            # if name == 'Underdog': return Agent_Underdog(id, name, self.lengthOfRace, self.endOfInPlayBettingPeriod)
+            # if name == 'Back_Favourite': return Agent_Back_Favourite(id, name, self.lengthOfRace, self.endOfInPlayBettingPeriod)
+            # if name == 'Linex': return Agent_Linex(id, name, self.lengthOfRace, self.endOfInPlayBettingPeriod)
+            # if name == 'Arbitrage': return Agent_Arbitrage(id, name, self.lengthOfRace, self.endOfInPlayBettingPeriod)
+            # if name == 'Arbitrage2': return Agent_Arbitrage2(id, name, self.lengthOfRace, self.endOfInPlayBettingPeriod)
+            # if name == 'Priveledged': return Agent_Priveledged(id, name, self.lengthOfRace, self.endOfInPlayBettingPeriod)
 
-            if name == 'Test': return Agent_Test(id, name, self.lengthOfRace, self.endOfInPlayBettingPeriod)
-            if name == 'Random': return Agent_Random(id, name, self.lengthOfRace, self.endOfInPlayBettingPeriod)
-            if name == 'Leader_Wins': return Agent_Leader_Wins(id, name, self.lengthOfRace, self.endOfInPlayBettingPeriod)
-            if name == 'Underdog': return Agent_Underdog(id, name, self.lengthOfRace, self.endOfInPlayBettingPeriod)
-            if name == 'Back_Favourite': return Agent_Back_Favourite(id, name, self.lengthOfRace, self.endOfInPlayBettingPeriod)
-            if name == 'Linex': return Agent_Linex(id, name, self.lengthOfRace, self.endOfInPlayBettingPeriod)
-            if name == 'Arbitrage': return Agent_Arbitrage(id, name, self.lengthOfRace, self.endOfInPlayBettingPeriod)
-            if name == 'Arbitrage2': return Agent_Arbitrage2(id, name, self.lengthOfRace, self.endOfInPlayBettingPeriod)
-            if name == 'Priveledged': return Agent_Priveledged(id, name, self.lengthOfRace, self.endOfInPlayBettingPeriod)
+            if name == 'Agent_Opinionated_Random': return Agent_Opinionated_Random(id, name, self.lengthOfRace, self.endOfInPlayBettingPeriod, 0, local_opinion, uncertainty, MIN_OP, MAX_OP )
+            if name == 'Agent_Opinionated_Leader_Wins': return Agent_Opinionated_Leader_Wins(id, name, self.lengthOfRace, self.endOfInPlayBettingPeriod, 0, local_opinion, uncertainty, MIN_OP, MAX_OP )
+            if name == 'Agent_Opinionated_Underdog': return Agent_Opinionated_Underdog(id, name, self.lengthOfRace, self.endOfInPlayBettingPeriod, 0, local_opinion, uncertainty, MIN_OP, MAX_OP)
+            if name == "Agent_Opinionated_Back_Favourite": return Agent_Opinionated_Back_Favourite(id, name, self.lengthOfRace, self.endOfInPlayBettingPeriod, 0, local_opinion, uncertainty, MIN_OP, MAX_OP)
+            if name == 'Agent_Opinionated_Linex': return Agent_Opinionated_Linex(id, name, self.lengthOfRace, self.endOfInPlayBettingPeriod, 0, local_opinion,uncertainty, MIN_OP, MAX_OP)
 
-            if name == 'Agent_Opinionated_Random': return Agent_Opinionated_Random(id, name, self.lengthOfRace, self.endOfInPlayBettingPeriod, 0, local_opinion, uncertainty, MIN_OP, MAX_OP, start_opinion )
-            if name == 'Agent_Opinionated_Leader_Wins': return Agent_Opinionated_Leader_Wins(id, name, self.lengthOfRace, self.endOfInPlayBettingPeriod, 0, local_opinion, uncertainty, MIN_OP, MAX_OP, start_opinion )
-            if name == 'Agent_Opinionated_Underdog': return Agent_Opinionated_Underdog(id, name, self.lengthOfRace, self.endOfInPlayBettingPeriod, 0, local_opinion, uncertainty, MIN_OP, MAX_OP, start_opinion)
-            if name == "Agent_Opinionated_Back_Favourite": return Agent_Opinionated_Back_Favourite(id, name, self.lengthOfRace, self.endOfInPlayBettingPeriod, 0, local_opinion, uncertainty, MIN_OP, MAX_OP, start_opinion)
-            if name == 'Agent_Opinionated_Linex': return Agent_Opinionated_Linex(id, name, self.lengthOfRace, self.endOfInPlayBettingPeriod, 0, local_opinion,uncertainty, MIN_OP, MAX_OP, start_opinion)
-
-            if name == 'Agent_Opinionated_Priviledged': return Agent_Opinionated_Priviledged(id, name, self.lengthOfRace, self.endOfInPlayBettingPeriod, 1, local_opinion, uncertainty, MIN_OP, MAX_OP, start_opinion)
+            if name == 'Agent_Opinionated_Priviledged': return Agent_Opinionated_Priviledged(id, name, self.lengthOfRace, self.endOfInPlayBettingPeriod, 1, local_opinion, uncertainty, MIN_OP, MAX_OP)
 
 
 
@@ -227,7 +234,7 @@ class Session:
         Initialise betting agents
         """
         self.populateMarket()
-        self.Conversations = Conversations(list(self.bettingAgents.values()), MODEL_NAME)
+        self.OpinionDynamicsPlatform = OpinionDynamicsPlatform(list(self.bettingAgents.values()), MODEL_NAME)
         # Create threads for all betting agents that wait until event session
         # has started
         for id, agent in self.bettingAgents.items():
@@ -360,12 +367,10 @@ class Session:
         self.distances = race.raceData
         self.endOfInPlayBettingPeriod = race.winningTimestep - IN_PLAY_CUT_OFF_PERIOD
 
+
         createInPlayOdds(self.numberOfTimesteps)
 
-        # for i in range(NUM_OF_COMPETITORS):
-        #     self.competitor_distances['competitor'].append(i)
-        #     self.competitor_distances['time'].append(timeInEvent)
-        #     self.competitor_distances['distance'].append(self.distances[][i])
+
 
 
 
@@ -397,6 +402,7 @@ class BBE(Session):
 
             currentSimulation = currentSimulation + 1
 
+        # Opinion Dynamics results:
 
         opinion_hist_df = pandas.DataFrame.from_dict(self.session.opinion_hist)
         opinion_hist_df.to_csv('opinions.csv', index=False)
@@ -413,8 +419,6 @@ class BBE(Session):
         competitor_odds_df = pandas.DataFrame.from_dict(self.session.competitor_odds)
         competitor_odds_df.to_csv('competitor_odds.csv', index=False)
 
-        print('competitor_odds_df: ', len(competitor_odds_df))
-
         competitor_distances_df = pandas.DataFrame.from_dict(self.session.competitor_distances)
         competitor_distances_df.to_csv('competitor_distances.csv', index=False)
 
@@ -423,10 +427,15 @@ class BBE(Session):
 
 
 if __name__ == "__main__":
-    random.seed(7)
-    np.random.seed(7)
+    import time
+
+    start = time.time()
+    random.seed(26)
+    np.random.seed(26)
     print('Running')
     bbe = BBE()
     print('Running')
     bbe.runSession()
+    end = time.time()
+    print('Time taken: ', end - start)
 

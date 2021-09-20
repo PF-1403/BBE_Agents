@@ -99,11 +99,11 @@ def price_spread(spreadHistory, simId):
 def priv_bettor_odds(bettingAgents):
     privBettors = []
     for id, agent in bettingAgents.items():
-        if agent.name == 'Priveledged': privBettors.append(agent)
+        if agent.name == 'Priveledged' or agent.name=='Agent_Opinionated_Priviledged': privBettors.append(agent)
 
-    # oddsdata = {}
-    # for b in privBettors:
-    #     oddsdata[b.id] = b.oddsData
+    oddsdata = {}
+    for b in privBettors:
+        oddsdata[b.id] = b.oddsData
 
     header = ["Time"]
     for c in range(NUM_OF_COMPETITORS):
@@ -158,7 +158,7 @@ def transactions(trades, simId):
 
 def createstats(bettingAgents, simId, trades, priceHistory, spreadHistory):
     priv_bettor_odds(bettingAgents)
-    final_balances(bettingAgents, simId)
+    # final_balances(bettingAgents, simId)
     price_histories(priceHistory, simId)
     price_spread(spreadHistory, simId)
     transactions(trades, simId)
