@@ -1,4 +1,4 @@
-# Multi-threaded BBE integrated with Human Data-Based Betting Agents.
+# Multi-threaded Bristol Betting Exchange (BBE) integrated with Human Data-Based Betting Agents.
 
 This project contains all code for the thesis 'Simulation-Based Development of a Betting Agent for In-Play Horse Betting Exchanges' by Peter Fox.
 
