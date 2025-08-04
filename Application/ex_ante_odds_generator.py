@@ -12,7 +12,7 @@ from message_protocols import *
 '''
 
 To most accurately simulate the precense of priveledged bettors in the market
-will take competitors alignment (between [0,1]) to race preferences and randomely alter it
+will take competitors alignment (between [0,1]) to race preferences and randomly alter it
 within a range (0 -> i) where i reduces inversely to num of priveledged bettors
 e.g for bettor one i is large for bettor n i is v small such that that bettor
 will have an almost omniscient view of the race.
